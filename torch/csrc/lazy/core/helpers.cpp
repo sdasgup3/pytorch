@@ -78,6 +78,9 @@ std::vector<int64_t> MakeTransposePermutation(
   return permute_dims;
 }
 
+// Sentinel value to represent unbounded dimension size.
+static constexpr int64_t kUnboundedSize = std::numeric_limits<int64_t>::min();
+
 std::vector<int64_t> GetPromotedShape(
     c10::ArrayRef<int64_t> shape1_dims,
     c10::ArrayRef<int64_t> shape2_dims) {
@@ -105,7 +108,8 @@ std::vector<int64_t> GetPromotedShape(
     int64_t dim1 = shape1_dims[shape1_dims.size() - min_size + i];
     int64_t dim2 = shape2_dims[shape2_dims.size() - min_size + i];
     TORCH_CHECK(
-        dim1 == dim2 || dim1 == 1 || dim2 == 1,
+        dim1 == dim2 || dim1 == 1 || dim2 == 1 || dim1 == kUnboundedSize ||
+            dim2 == kUnboundedSize,
         "(",
         c10::Join(", ", shape1_dims),
         ") and (",
@@ -113,6 +117,8 @@ std::vector<int64_t> GetPromotedShape(
         ")");
     if (dim1 == 0 || dim2 == 0) {
       dimensions.push_back(0);
+    } else if (dim1 == kUnboundedSize || dim2 == kUnboundedSize) {
+      dimensions.push_back(kUnboundedSize);
     } else {
       dimensions.push_back(std::max<int64_t>(dim1, dim2));
     }
